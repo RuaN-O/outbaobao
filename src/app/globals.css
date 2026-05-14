@@ -5,6 +5,148 @@ html {
 body {
   margin: 0;
   min-height: 100vh;
+  background: #f5f6f7;
+  color: #1f2328;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+.page-shell {
+  width: min(960px, calc(100% - 32px));
+  margin: 0 auto;
+  padding: 32px 0 48px;
+}
+
+.page-header {
+  margin-bottom: 24px;
+}
+
+.page-header h1 {
+  margin: 0 0 8px;
+  font-size: 32px;
+}
+
+.page-subtitle {
+  margin: 0;
+  color: #5b6470;
+}
+
+.toolbar {
   display: grid;
-  place-items: center;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.search-form input {
+  width: 100%;
+  padding: 12px 14px;
+  border: 1px solid #ccd3db;
+  border-radius: 10px;
+  background: #fff;
+}
+
+.tag-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.tag-chip {
+  padding: 8px 12px;
+  border-radius: 999px;
+  background: #e9edf2;
+  color: #344054;
+  font-size: 14px;
+}
+
+.tag-chip.active {
+  background: #111827;
+  color: #fff;
+}
+
+.article-list {
+  display: grid;
+  gap: 16px;
+}
+
+.article-card {
+  padding: 20px;
+  border: 1px solid #d9dee5;
+  border-radius: 16px;
+  background: #fff;
+}
+
+.article-card h2 {
+  margin: 0 0 10px;
+  font-size: 22px;
+}
+
+.article-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 12px;
+  color: #5b6470;
+  font-size: 14px;
+}
+
+.article-summary {
+  margin: 0;
+  line-height: 1.7;
+  color: #374151;
+}
+
+.pagination {
+  display: flex;
+  gap: 12px;
+  margin-top: 24px;
+  align-items: center;
+}
+
+.pagination a,
+.pagination span {
+  padding: 8px 12px;
+  border-radius: 10px;
+  background: #fff;
+  border: 1px solid #d9dee5;
+}
+
+.article-detail {
+  padding: 28px;
+  border: 1px solid #d9dee5;
+  border-radius: 18px;
+  background: #fff;
+}
+
+.article-detail h1 {
+  margin: 0 0 12px;
+  font-size: 32px;
+}
+
+.article-content {
+  line-height: 1.8;
+  color: #374151;
+}
+
+.article-content p {
+  margin: 0 0 16px;
+}
+
+@media (max-width: 640px) {
+  .page-shell {
+    width: min(100% - 24px, 960px);
+    padding: 24px 0 36px;
+  }
+
+  .page-header h1,
+  .article-detail h1 {
+    font-size: 26px;
+  }
 }

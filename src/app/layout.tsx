@@ -3,11 +3,11 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: "在线公告板",
-  description: "在线公告板"
+  description: "一个用于公开发布文章和公告的在线公告板。",
 };
 
 export default function RootLayout({
-  children
+  children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {

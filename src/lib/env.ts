@@ -15,3 +15,7 @@ export function getAdminPassword(): string {
 export function getSessionSecret(): string {
   return getRequiredEnv("SESSION_SECRET");
 }
+
+export function getSiteUrl(): string {
+  return getRequiredEnv("SITE_URL");
+}

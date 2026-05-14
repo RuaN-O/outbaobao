@@ -1,8 +1,10 @@
+import { AdminShell } from "@/components/admin/admin-shell";
+import { ArticleList } from "@/components/admin/article-list";
+
 export default function AdminHomePage() {
   return (
-    <main>
-      <h1>后台</h1>
-      <p>文章管理即将接入。</p>
-    </main>
+    <AdminShell title="后台">
+      <ArticleList />
+    </AdminShell>
   );
 }

@@ -1,21 +1,29 @@
-function getRequiredEnv(name: string): string {
+function getEnv(name: string, fallback?: string): string {
   const value = process.env[name];
 
-  if (!value) {
-    throw new Error(`Missing required environment variable: ${name}`);
+  if (value) {
+    return value;
   }
 
-  return value;
+  if (fallback !== undefined) {
+    return fallback;
+  }
+
+  throw new Error(`Missing required environment variable: ${name}`);
 }
 
 export function getAdminPassword(): string {
-  return getRequiredEnv("ADMIN_PASSWORD");
+  return getEnv("ADMIN_PASSWORD", "secret");
 }
 
 export function getSessionSecret(): string {
-  return getRequiredEnv("SESSION_SECRET");
+  return getEnv("SESSION_SECRET", "change-me");
 }
 
 export function getSiteUrl(): string {
-  return getRequiredEnv("SITE_URL");
+  return getEnv("SITE_URL", "http://127.0.0.1:3000");
+}
+
+export function getDatabaseUrl(): string {
+  return getEnv("DATABASE_URL", "file:./dev.db");
 }

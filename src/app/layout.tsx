@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "在线公告板",
+  title: "内容",
   description: "一个用于公开发布文章和公告的在线公告板。",
 };
 

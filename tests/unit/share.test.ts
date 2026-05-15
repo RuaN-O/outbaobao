@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { createQrCodeSvg } from "@/lib/qr-code";
 import { resolveShareFields } from "@/lib/share";
 
 describe("share field fallback", () => {
@@ -15,5 +16,13 @@ describe("share field fallback", () => {
     expect(result.title).toBe("分享标题");
     expect(result.description).toBe("分享摘要");
     expect(result.image).toBe("/uploads/share.png");
+  });
+
+  it("creates SVG markup for article QR codes", async () => {
+    const svg = await createQrCodeSvg("https://example.com/articles/example-article");
+
+    expect(svg).toContain("<svg");
+    expect(svg).toContain("viewBox");
+    expect(svg).toContain("<path");
   });
 });

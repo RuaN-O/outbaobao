@@ -19,6 +19,7 @@ model Article {
   title            String
   summary          String
   contentHtml      String
+  inlineImagesJson String        @default("[]")
   coverImagePath   String?
   shareTitle       String?
   shareDescription String?

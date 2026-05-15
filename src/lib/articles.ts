@@ -1,4 +1,4 @@
-type ArticleStatus = "DRAFT" | "PUBLISHED" | "SCHEDULED";
+import { listSharedArticles, type ArticleStatus } from "@/lib/admin-articles";
 
 type VisibilityArticle = {
   status: ArticleStatus;
@@ -24,53 +24,27 @@ export type PublicArticle = SortableArticle & {
   tags: string[];
 };
 
-const SAMPLE_ARTICLES: PublicArticle[] = [
-  {
-    id: "notice-1",
-    slug: "launch-notice",
-    title: "通知",
-    summary: "公告板首版已经可访问，后续会持续补充内容。",
-    contentHtml: "<p>公告板首版已经上线，后续将持续更新内容与功能。</p>",
-    coverImagePath: null,
-    status: "PUBLISHED",
-    isPinned: true,
-    publishedAt: new Date("2026-05-14T09:00:00+08:00"),
-    shareTitle: null,
-    shareDescription: null,
-    shareImagePath: null,
-    tags: ["公告"],
-  },
-  {
-    id: "article-1",
-    slug: "example-article",
-    title: "示例文章",
-    summary: "这是一篇用于验证详情页和分享元信息的示例文章。",
-    contentHtml: "<p>这是一篇用于验证详情页和分享元信息的示例文章。</p>",
-    coverImagePath: null,
-    status: "PUBLISHED",
-    isPinned: false,
-    publishedAt: new Date("2026-05-13T10:00:00+08:00"),
-    shareTitle: "示例文章分享标题",
-    shareDescription: "用于验证分享信息回落逻辑。",
-    shareImagePath: null,
-    tags: ["示例"],
-  },
-  {
-    id: "draft-1",
-    slug: "draft-article",
-    title: "草稿文章",
-    summary: "这篇文章不应该出现在公开站点。",
-    contentHtml: "<p>这篇文章不应该出现在公开站点。</p>",
-    coverImagePath: null,
-    status: "DRAFT",
-    isPinned: false,
-    publishedAt: new Date("2026-05-13T08:00:00+08:00"),
-    shareTitle: null,
-    shareDescription: null,
-    shareImagePath: null,
-    tags: ["草稿"],
-  },
-];
+function parseDateValue(value: string) {
+  return value ? new Date(value) : null;
+}
+
+function toPublicArticle(record: Awaited<ReturnType<typeof listSharedArticles>>[number]): PublicArticle {
+  return {
+    id: record.id,
+    slug: record.slug,
+    title: record.title,
+    summary: record.summary,
+    contentHtml: record.contentHtml,
+    coverImagePath: record.coverImagePath || null,
+    shareTitle: record.shareTitle || null,
+    shareDescription: record.shareDescription || null,
+    shareImagePath: record.shareImagePath || null,
+    status: record.status,
+    isPinned: record.isPinned,
+    publishedAt: parseDateValue(record.publishedAt),
+    tags: record.tags,
+  };
+}
 
 export function isArticlePublic(article: VisibilityArticle, now: Date): boolean {
   if (article.status === "DRAFT") {
@@ -105,7 +79,7 @@ type ListPublicArticlesParams = {
   now?: Date;
 };
 
-export function listPublicArticles({
+export async function listPublicArticles({
   q,
   tag,
   page = 1,
@@ -114,7 +88,7 @@ export function listPublicArticles({
 }: ListPublicArticlesParams) {
   const normalizedQuery = q?.trim().toLowerCase();
   const normalizedTag = tag?.trim();
-  const visibleArticles = SAMPLE_ARTICLES.filter((article) => isArticlePublic(article, now));
+  const visibleArticles = (await listSharedArticles()).map(toPublicArticle).filter((article) => isArticlePublic(article, now));
   const filteredArticles = visibleArticles.filter((article) => {
     const matchesTag = normalizedTag ? article.tags.includes(normalizedTag) : true;
     const matchesQuery = normalizedQuery
@@ -136,8 +110,8 @@ export function listPublicArticles({
   };
 }
 
-export function getPublicArticleBySlug(slug: string, now = new Date()): PublicArticle | null {
-  const article = SAMPLE_ARTICLES.find((item) => item.slug === slug);
+export async function getPublicArticleBySlug(slug: string, now = new Date()): Promise<PublicArticle | null> {
+  const article = (await listSharedArticles()).map(toPublicArticle).find((item) => item.slug === slug);
 
   if (!article || !isArticlePublic(article, now)) {
     return null;
@@ -146,14 +120,38 @@ export function getPublicArticleBySlug(slug: string, now = new Date()): PublicAr
   return article;
 }
 
-export function listPublicTags(): string[] {
+export async function listPublicTags(now = new Date()): Promise<string[]> {
   const tags = new Set<string>();
 
-  for (const article of SAMPLE_ARTICLES) {
-    if (isArticlePublic(article, new Date())) {
+  for (const article of (await listSharedArticles()).map(toPublicArticle)) {
+    if (isArticlePublic(article, now)) {
       article.tags.forEach((tag) => tags.add(tag));
     }
   }
 
   return [...tags];
+}
+
+export function normalizeArticleStatus(input: {
+  action: "draft" | "publish" | "schedule";
+  scheduledFor?: Date | null;
+}) {
+  if (input.action === "draft") {
+    return {
+      status: "DRAFT" as const,
+      publishedAt: null,
+    };
+  }
+
+  if (input.action === "publish") {
+    return {
+      status: "PUBLISHED" as const,
+      publishedAt: new Date(),
+    };
+  }
+
+  return {
+    status: "SCHEDULED" as const,
+    publishedAt: input.scheduledFor ?? null,
+  };
 }

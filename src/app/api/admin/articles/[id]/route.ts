@@ -1,12 +1,9 @@
 import { NextResponse } from "next/server";
-import { createAdminArticle, listAdminArticles } from "@/lib/admin-articles";
+import { updateAdminArticle } from "@/lib/admin-articles";
 import { normalizeArticleStatus } from "@/lib/articles";
 
-export async function GET() {
-  return NextResponse.json(await listAdminArticles());
-}
-
-export async function POST(request: Request) {
+export async function PATCH(request: Request, context: { params: Promise<{ id: string }> }) {
+  const { id } = await context.params;
   const payload = (await request.json()) as {
     title?: unknown;
     summary?: unknown;
@@ -35,16 +32,12 @@ export async function POST(request: Request) {
     return NextResponse.json({ message: "Invalid payload" }, { status: 400 });
   }
 
-  if (!payload.title.trim()) {
-    return NextResponse.json({ message: "Title is required" }, { status: 400 });
-  }
-
   const normalizedStatus = normalizeArticleStatus({
     action: payload.publishAction,
     scheduledFor: payload.scheduledFor ? new Date(payload.scheduledFor) : null,
   });
 
-  const article = await createAdminArticle({
+  const article = await updateAdminArticle(id, {
     title: payload.title,
     summary: payload.summary,
     tags: payload.tags.filter((tag): tag is string => typeof tag === "string"),
@@ -53,11 +46,14 @@ export async function POST(request: Request) {
     shareTitle: payload.shareTitle,
     shareDescription: payload.shareDescription,
     shareImagePath: payload.shareImagePath,
-    coverImagePath: "",
     status: normalizedStatus.status,
     publishedAt: normalizedStatus.publishedAt?.toISOString() ?? "",
     scheduledFor: payload.scheduledFor,
   });
 
-  return NextResponse.json(article, { status: 201 });
+  if (!article) {
+    return NextResponse.json({ message: "Article not found" }, { status: 404 });
+  }
+
+  return NextResponse.json(article);
 }

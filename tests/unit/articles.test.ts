@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { isArticlePublic, sortArticles } from "@/lib/articles";
+import { isArticlePublic, normalizeArticleStatus, sortArticles } from "@/lib/articles";
 
 describe("article visibility", () => {
   it("hides drafts", () => {
@@ -23,5 +23,19 @@ describe("article visibility", () => {
     ]);
 
     expect(result.map((item) => item.id)).toEqual(["a", "b"]);
+  });
+
+  it("normalizes scheduled publishing state", () => {
+    const scheduledFor = new Date("2026-05-15T09:00:00Z");
+
+    expect(
+      normalizeArticleStatus({
+        action: "schedule",
+        scheduledFor,
+      }),
+    ).toEqual({
+      status: "SCHEDULED",
+      publishedAt: scheduledFor,
+    });
   });
 });

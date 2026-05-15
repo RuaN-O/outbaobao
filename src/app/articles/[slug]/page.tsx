@@ -1,7 +1,10 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import { ArticleShareButton } from "@/components/public/article-share-button";
 import { getPublicArticleBySlug } from "@/lib/articles";
 import { resolveShareFields } from "@/lib/share";
+
+export const dynamic = "force-dynamic";
 
 type ArticleDetailPageProps = {
   params: Promise<{
@@ -11,7 +14,7 @@ type ArticleDetailPageProps = {
 
 export async function generateMetadata({ params }: ArticleDetailPageProps): Promise<Metadata> {
   const { slug } = await params;
-  const article = getPublicArticleBySlug(slug);
+  const article = await getPublicArticleBySlug(slug);
 
   if (!article) {
     return {
@@ -34,7 +37,7 @@ export async function generateMetadata({ params }: ArticleDetailPageProps): Prom
 
 export default async function ArticleDetailPage({ params }: ArticleDetailPageProps) {
   const { slug } = await params;
-  const article = getPublicArticleBySlug(slug);
+  const article = await getPublicArticleBySlug(slug);
 
   if (!article) {
     notFound();
@@ -44,6 +47,7 @@ export default async function ArticleDetailPage({ params }: ArticleDetailPagePro
     <main className="page-shell">
       <article className="article-detail">
         <h1>{article.title}</h1>
+        <ArticleShareButton />
         <div className="article-meta">
           <span>{article.publishedAt?.toLocaleDateString("zh-CN")}</span>
           {article.tags.map((tag) => (

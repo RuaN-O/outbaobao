@@ -69,6 +69,19 @@ select {
   background: #fff;
 }
 
+.article-title-input {
+  width: 100%;
+  min-height: 96px;
+}
+
+.share-summary-textarea {
+  min-height: 96px;
+}
+
+.article-summary-input {
+  min-height: 64px;
+}
+
 button {
   padding: 10px 14px;
   border: 1px solid #d9dee5;

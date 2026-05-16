@@ -21,7 +21,7 @@ export default async function EditArticlePage({ params }: EditArticlePageProps) 
 
   return (
     <AdminShell title="编辑文章">
-      <ArticleForm article={article} mode="edit" submitLabel="保存草稿" />
+      <ArticleForm article={article} mode="edit" />
     </AdminShell>
   );
 }

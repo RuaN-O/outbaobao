@@ -66,7 +66,6 @@ export default async function ArticleDetailPage({ params }: ArticleDetailPagePro
         <h1>{article.title}</h1>
         {isAdmin ? <ArticleShareButton /> : null}
         <div className="article-meta">
-          <span>{article.publishedAt?.toLocaleDateString("zh-CN")}</span>
           {article.tags.map((tag) => (
             <span key={tag}>{tag}</span>
           ))}

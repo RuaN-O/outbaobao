@@ -9,32 +9,26 @@ import type { AdminArticleRecord } from "@/lib/admin-articles";
 type ArticleFormProps = {
   mode: "create" | "edit";
   article?: AdminArticleRecord;
-  submitLabel?: string;
 };
 
 type SaveState = "idle" | "success" | "error";
-type PublishAction = "draft" | "publish" | "schedule";
 
 function removeImageFromContent(contentHtml: string, image: string) {
   const escapedImage = image.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
   return contentHtml.replace(new RegExp(`<p><img src="${escapedImage}" alt="" \\/><\\/p>`, "g"), "");
 }
 
-export function ArticleForm({ mode, article, submitLabel = "保存草稿" }: ArticleFormProps) {
+export function ArticleForm({ mode, article }: ArticleFormProps) {
   const router = useRouter();
   const [isClientReady, setIsClientReady] = useState(false);
   const [title, setTitle] = useState(article?.title ?? "");
   const [summary, setSummary] = useState(article?.summary ?? "");
-  const [tags, setTags] = useState(article?.tags.join(",") ?? "");
   const [contentHtml, setContentHtml] = useState(article?.contentHtml ?? "<p></p>");
   const [inlineImages, setInlineImages] = useState(article?.inlineImages ?? []);
-  const [shareTitle, setShareTitle] = useState(article?.shareTitle ?? "");
+  const [shareTitle] = useState(article?.shareTitle ?? "");
   const [shareDescription, setShareDescription] = useState(article?.shareDescription ?? "");
   const [shareImagePath, setShareImagePath] = useState(article?.shareImagePath ?? "");
-  const [publishAction, setPublishAction] = useState<PublishAction>(
-    article?.status === "PUBLISHED" ? "publish" : article?.status === "SCHEDULED" ? "schedule" : "draft",
-  );
-  const [scheduledFor, setScheduledFor] = useState(article?.scheduledFor ?? "");
+  const [tags] = useState(article?.tags ?? []);
   const [saveState, setSaveState] = useState<SaveState>("idle");
   const [shareUploadState, setShareUploadState] = useState<"idle" | "uploading" | "error">("idle");
 
@@ -78,23 +72,20 @@ export function ArticleForm({ mode, article, submitLabel = "保存草稿" }: Art
     event.target.value = "";
   }
 
-  async function saveArticle(action: PublishAction) {
+  async function saveArticle() {
     setSaveState("idle");
 
     const body = JSON.stringify({
       title,
       summary,
-      tags: tags
-        .split(",")
-        .map((tag) => tag.trim())
-        .filter(Boolean),
+      tags,
       contentHtml,
       inlineImages,
       shareTitle,
       shareDescription,
       shareImagePath,
-      publishAction: action,
-      scheduledFor,
+      publishAction: "publish",
+      scheduledFor: "",
     });
 
     if (mode === "edit" && article) {
@@ -132,9 +123,6 @@ export function ArticleForm({ mode, article, submitLabel = "保存草稿" }: Art
     }
   }
 
-  const primaryAction: PublishAction = publishAction === "schedule" ? "schedule" : "draft";
-  const primaryLabel = publishAction === "schedule" ? "定时发布" : submitLabel;
-
   if (!isClientReady) {
     return (
       <section className="article-detail">
@@ -147,13 +135,21 @@ export function ArticleForm({ mode, article, submitLabel = "保存草稿" }: Art
     <section className="article-detail">
       <div className="toolbar">
         <label htmlFor="title">标题</label>
-        <input id="title" name="title" value={title} onChange={(event) => setTitle(event.target.value)} />
+        <textarea
+          id="title"
+          className="article-title-input"
+          name="title"
+          rows={3}
+          value={title}
+          onChange={(event) => setTitle(event.target.value)}
+        />
       </div>
 
       <div className="toolbar">
         <label htmlFor="summary">摘要</label>
         <textarea
           id="summary"
+          className="article-summary-input"
           name="summary"
           rows={4}
           value={summary}
@@ -162,30 +158,10 @@ export function ArticleForm({ mode, article, submitLabel = "保存草稿" }: Art
       </div>
 
       <div className="toolbar">
-        <label htmlFor="tags">标签</label>
-        <input
-          id="tags"
-          name="tags"
-          placeholder="用逗号分隔"
-          value={tags}
-          onChange={(event) => setTags(event.target.value)}
-        />
-      </div>
-
-      <div className="toolbar">
-        <label htmlFor="shareTitle">分享卡片主文案</label>
-        <input
-          id="shareTitle"
-          name="shareTitle"
-          value={shareTitle}
-          onChange={(event) => setShareTitle(event.target.value)}
-        />
-      </div>
-
-      <div className="toolbar">
         <label htmlFor="shareDescription">分享摘要</label>
         <textarea
           id="shareDescription"
+          className="share-summary-textarea"
           name="shareDescription"
           rows={3}
           value={shareDescription}
@@ -214,31 +190,6 @@ export function ArticleForm({ mode, article, submitLabel = "保存草稿" }: Art
         {shareImagePath ? <img className="share-cover-preview" src={shareImagePath} alt="分享封面图预览" /> : null}
       </div>
 
-      <div className="toolbar">
-        <label htmlFor="publishAction">发布状态</label>
-        <select
-          id="publishAction"
-          name="publishAction"
-          value={publishAction}
-          onChange={(event) => setPublishAction(event.target.value as PublishAction)}
-        >
-          <option value="draft">草稿</option>
-          <option value="publish">立即发布</option>
-          <option value="schedule">定时发布</option>
-        </select>
-      </div>
-
-      <div className="toolbar">
-        <label htmlFor="scheduledFor">定时发布时间</label>
-        <input
-          id="scheduledFor"
-          name="scheduledFor"
-          type="datetime-local"
-          value={scheduledFor}
-          onChange={(event) => setScheduledFor(event.target.value)}
-        />
-      </div>
-
       <RichTextEditor
         value={contentHtml}
         images={inlineImages}
@@ -253,10 +204,7 @@ export function ArticleForm({ mode, article, submitLabel = "保存草稿" }: Art
       />
 
       <div className="pagination">
-        <button type="button" onClick={() => void saveArticle(primaryAction)}>
-          {primaryLabel}
-        </button>
-        <button type="button" onClick={() => void saveArticle("publish")}>
+        <button type="button" onClick={() => void saveArticle()}>
           立即发布
         </button>
         {saveState === "success" ? <span>保存成功</span> : null}

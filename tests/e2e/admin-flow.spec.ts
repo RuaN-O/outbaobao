@@ -110,3 +110,20 @@ test("admin can delete an article from the list", async ({ page }) => {
 
   await expect(articleCard).toHaveCount(0);
 });
+
+test("admin article form hides advanced fields and uses immediate publish by default", async ({ page }) => {
+  await page.goto("/admin/login");
+  await page.getByLabel("访问密码").fill("secret");
+  await page.getByRole("button", { name: "进入后台" }).click();
+  await expect(page).toHaveURL("/admin");
+
+  await page.goto("/admin/articles/new");
+
+  await expect(page.getByLabel("标签")).toHaveCount(0);
+  await expect(page.getByLabel("分享卡片主文案")).toHaveCount(0);
+  await expect(page.getByLabel("发布状态")).toHaveCount(0);
+  await expect(page.getByLabel("定时发布时间")).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "保存草稿" })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "定时发布" })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "立即发布" })).toHaveCount(1);
+});

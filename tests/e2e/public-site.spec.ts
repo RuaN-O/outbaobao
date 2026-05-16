@@ -20,7 +20,17 @@ test("public article page exposes title and summary metadata", async ({ page }) 
   await expect(page).toHaveTitle(new RegExp(headingText.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
 });
 
-test("public article page can open a QR share modal", async ({ page }) => {
+test("anonymous visitors do not see the share button on public article pages", async ({ page }) => {
+  await page.goto("/articles/example-article");
+  await expect(page.getByRole("button", { name: "分享" })).toHaveCount(0);
+});
+
+test("admin viewers can open the QR share modal on public article pages", async ({ page }) => {
+  await page.goto("/admin/login");
+  await page.getByLabel("访问密码").fill("secret");
+  await page.getByRole("button", { name: "进入后台" }).click();
+  await expect(page).toHaveURL("/admin");
+
   await page.goto("/articles/example-article");
   await page.getByRole("button", { name: "分享" }).click();
 

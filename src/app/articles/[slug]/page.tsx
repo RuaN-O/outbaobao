@@ -1,8 +1,11 @@
 import type { Metadata } from "next";
+import { cookies } from "next/headers";
 import { notFound } from "next/navigation";
 import { ArticleShareButton } from "@/components/public/article-share-button";
+import { readAdminSession } from "@/lib/auth";
 import { getPublicArticleBySlug } from "@/lib/articles";
 import { resolveShareFields } from "@/lib/share";
+import { ADMIN_SESSION_COOKIE } from "@/lib/session";
 
 export const dynamic = "force-dynamic";
 
@@ -11,6 +14,18 @@ type ArticleDetailPageProps = {
     slug: string;
   }>;
 };
+
+async function isCurrentViewerAdmin() {
+  const cookieStore = await cookies();
+  const cookieValue = cookieStore.get(ADMIN_SESSION_COOKIE)?.value;
+
+  if (!cookieValue) {
+    return false;
+  }
+
+  const session = await readAdminSession(cookieValue);
+  return session?.isAdmin === true;
+}
 
 export async function generateMetadata({ params }: ArticleDetailPageProps): Promise<Metadata> {
   const { slug } = await params;
@@ -43,11 +58,13 @@ export default async function ArticleDetailPage({ params }: ArticleDetailPagePro
     notFound();
   }
 
+  const isAdmin = await isCurrentViewerAdmin();
+
   return (
     <main className="page-shell">
       <article className="article-detail">
         <h1>{article.title}</h1>
-        <ArticleShareButton />
+        {isAdmin ? <ArticleShareButton /> : null}
         <div className="article-meta">
           <span>{article.publishedAt?.toLocaleDateString("zh-CN")}</span>
           {article.tags.map((tag) => (

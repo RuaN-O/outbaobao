@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { signAdminSession, verifyConfiguredAdminPassword } from "@/lib/auth";
-import { getSiteUrl } from "@/lib/env";
+import { getRequestOrigin } from "@/lib/site-url";
 import { ADMIN_SESSION_COOKIE } from "@/lib/session";
 
 export async function POST(request: Request) {
@@ -12,7 +12,7 @@ export async function POST(request: Request) {
   }
 
   const session = await signAdminSession({ isAdmin: true });
-  const response = NextResponse.redirect(new URL("/admin", getSiteUrl()), { status: 303 });
+  const response = NextResponse.redirect(new URL("/admin", getRequestOrigin(request)), { status: 303 });
 
   response.cookies.set(ADMIN_SESSION_COOKIE, session, {
     httpOnly: true,

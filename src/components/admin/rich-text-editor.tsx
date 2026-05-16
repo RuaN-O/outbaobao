@@ -1,5 +1,6 @@
 "use client";
 
+import type { ChangeEvent } from "react";
 import { useEffect, useRef, useState } from "react";
 
 type RichTextEditorProps = {
@@ -74,7 +75,7 @@ export function RichTextEditor({ value, images, onChange, onAddImage, onRemoveIm
     syncEditorValue();
   }
 
-  async function handleFileChange(event: React.ChangeEvent<HTMLInputElement>) {
+  async function handleFileChange(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
 
     if (!file) {

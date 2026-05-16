@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { readAdminSession } from "@/lib/auth";
+import { getRequestOrigin } from "@/lib/site-url";
 import { ADMIN_SESSION_COOKIE } from "@/lib/session";
 
 function isProtectedPath(pathname: string): boolean {
@@ -22,13 +23,13 @@ export async function middleware(request: NextRequest) {
   const cookieValue = request.cookies.get(ADMIN_SESSION_COOKIE)?.value;
 
   if (!cookieValue) {
-    return NextResponse.redirect(new URL("/admin/login", request.url));
+    return NextResponse.redirect(new URL("/admin/login", getRequestOrigin(request)));
   }
 
   const session = await readAdminSession(cookieValue);
 
   if (!session) {
-    return NextResponse.redirect(new URL("/admin/login", request.url));
+    return NextResponse.redirect(new URL("/admin/login", getRequestOrigin(request)));
   }
 
   return NextResponse.next();

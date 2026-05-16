@@ -392,3 +392,27 @@ export async function updateAdminArticle(id: string, updates: UpdateAdminArticle
 
   return toAdminArticleRecord(article);
 }
+
+export async function deleteAdminArticle(id: string): Promise<boolean> {
+  const existing = await findArticleById(id);
+
+  if (!existing) {
+    return false;
+  }
+
+  await db.$transaction(async (tx) => {
+    await tx.article.delete({
+      where: { id },
+    });
+
+    await tx.tag.deleteMany({
+      where: {
+        articles: {
+          none: {},
+        },
+      },
+    });
+  });
+
+  return true;
+}

@@ -1,7 +1,10 @@
+import { NextRequest } from "next/server";
 import { afterEach, describe, expect, it } from "vitest";
 import { POST as loginPost } from "@/app/api/admin/login/route";
 import { POST as logoutPost } from "@/app/api/admin/logout/route";
 import { readAdminSession, signAdminSession, verifyAdminPassword } from "@/lib/auth";
+import { getRequestOrigin } from "@/lib/site-url";
+import { middleware } from "@/middleware";
 
 const originalEnv = {
   ADMIN_PASSWORD: process.env.ADMIN_PASSWORD,
@@ -60,6 +63,31 @@ describe("admin auth", () => {
     );
 
     expect(response.status).toBe(303);
+    expect(response.headers.get("location")).toBe("https://jss309309.com/admin/login");
+  });
+
+  it("prefers forwarded host headers when reconstructing request origin", () => {
+    const request = new Request("http://localhost:3000/admin/login", {
+      headers: {
+        "x-forwarded-host": "jss309309.com",
+        "x-forwarded-proto": "https",
+      },
+    });
+
+    expect(getRequestOrigin(request)).toBe("https://jss309309.com");
+  });
+
+  it("redirects anonymous admin access using the forwarded host", async () => {
+    const request = new NextRequest("http://localhost:3000/admin", {
+      headers: {
+        "x-forwarded-host": "jss309309.com",
+        "x-forwarded-proto": "https",
+      },
+    });
+
+    const response = await middleware(request);
+
+    expect(response.status).toBe(307);
     expect(response.headers.get("location")).toBe("https://jss309309.com/admin/login");
   });
 });

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { DeleteArticleButton } from "@/components/admin/delete-article-button";
 import type { AdminArticleRecord } from "@/lib/admin-articles";
 
 type ArticleListProps = {
@@ -42,6 +43,7 @@ export function ArticleList({ articles }: ArticleListProps) {
           <div className="pagination">
             <Link href={`/admin/articles/${article.id}/edit`}>继续编辑</Link>
             <Link href={`/articles/${article.slug}`}>公开预览</Link>
+            <DeleteArticleButton articleId={article.id} articleTitle={article.title} />
           </div>
         </article>
       ))}

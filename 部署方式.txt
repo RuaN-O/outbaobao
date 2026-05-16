@@ -1,0 +1,123 @@
+ 部署方式
+  最简单的生产部署结构是：
+
+  - 1 台服务器
+  - Node.js 运行 Next.js
+  - SQLite 本地文件存数据
+  - 本地磁盘 public/uploads 存图片
+  - Nginx 反向代理到应用端口
+
+  这套最适合你现在这个项目，因为：
+
+  - 只有你自己写内容
+  - 访问量通常不会特别大
+  - 单机部署最省事
+  - 当前代码就是按“单机 SQLite + 本地上传目录”设计的
+
+  服务器上怎么跑
+  以 Linux 服务器为例，流程大概是：
+
+  1. 安装环境
+
+  node -v
+  pnpm -v
+
+  建议：
+
+  - Node 20+
+  - pnpm 9/10/11 都可以
+
+  2. 把项目传到服务器
+     比如放到：
+
+  /var/www/outbaobao
+
+  3. 安装依赖
+
+  cd /var/www/outbaobao
+  pnpm install
+
+  4. 配置环境变量
+     创建 .env：
+
+  ADMIN_PASSWORD=你自己的后台密码
+  SESSION_SECRET=一串足够长的随机字符串
+  DATABASE_URL=file:./dev.db
+  SITE_URL=https://你的域名
+
+  5. 初始化数据库
+
+  pnpm prisma db push --skip-generate
+
+  6. 构建
+
+  pnpm build
+
+  7. 启动生产服务
+
+  pnpm start
+
+  默认会跑在 3000 端口。
+
+  建议正式这样守护运行
+  不要直接裸跑，建议用 pm2：
+
+  pnpm add -g pm2
+  cd /var/www/outbaobao
+  pm2 start "pnpm start" --name outbaobao
+  pm2 save
+  pm2 startup
+
+  Nginx 反向代理
+  把域名转到 3000：
+
+  server {
+      listen 80;
+      server_name your-domain.com;
+
+      location / {
+          proxy_pass http://127.0.0.1:3000;
+          proxy_http_version 1.1;
+          proxy_set_header Host $host;
+          proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+          proxy_set_header X-Forwarded-Proto $scheme;
+      }
+  }
+
+  然后再配 HTTPS，建议用 certbot。
+
+  你要重点保留的持久化数据
+  服务器上最重要的就是这两处：
+
+  - 数据库文件：/var/www/outbaobao/dev.db
+  - 图片目录：/var/www/outbaobao/public/uploads
+
+  以后迁移服务器、备份、恢复，都要同时带走这两处。
+
+  当前这套部署的边界
+  现在这版适合：
+
+  - 单台服务器
+  - 单管理员后台
+  - 本地图片存储
+  - 中小访问量
+
+  现在不适合：
+
+  - 多台服务器同时跑
+  - 容器频繁销毁但不挂持久卷
+  - 多副本横向扩容
+
+  因为：
+
+  - SQLite 是本地文件
+  - 上传图片也是本地磁盘
+
+  一句话部署命令
+  如果你已经把项目传上服务器，最短就是：
+
+  cd /var/www/outbaobao
+  pnpm install
+  pnpm prisma db push --skip-generate
+  pnpm build
+  ADMIN_PASSWORD=xxx SESSION_SECRET=xxx DATABASE_URL=file:./dev.db SITE_URL=https://你的域名 pnpm start

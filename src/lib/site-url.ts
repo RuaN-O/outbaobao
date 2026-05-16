@@ -9,6 +9,15 @@ export function getConfiguredSiteOrigin() {
 }
 
 export function getRequestOrigin(request: Request) {
+  const forwardedHost = request.headers.get("x-forwarded-host");
+  const host = forwardedHost || request.headers.get("host");
+  const forwardedProto = request.headers.get("x-forwarded-proto");
+
+  if (host) {
+    const protocol = forwardedProto || new URL(request.url).protocol.replace(":", "");
+    return trimTrailingSlash(`${protocol}://${host}`);
+  }
+
   return trimTrailingSlash(new URL(request.url).origin);
 }
 

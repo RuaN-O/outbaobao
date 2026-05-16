@@ -1,0 +1,24 @@
+cd E:\OutBaoBao
+
+  $env:ADMIN_PASSWORD="secret"
+  $env:SESSION_SECRET="session-secret"
+  $env:DATABASE_URL="file:./dev.db"
+  $env:SITE_URL="http://127.0.0.1:3000"
+
+  pnpm prisma db push --skip-generate
+  pnpm exec next dev --hostname 127.0.0.1 --port 3000
+
+  启动后访问：
+
+  - 前台首页：http://127.0.0.1:3000
+  - 后台登录：http://127.0.0.1:3000/admin/login
+
+  后台密码：
+
+  secret
+
+  如果 3000 被占用，就把最后一行改成：
+
+  pnpm exec next dev --hostname 127.0.0.1 --port 3001
+
+  然后访问 http://127.0.0.1:3001。

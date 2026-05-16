@@ -84,3 +84,29 @@ test("admin can upload a share cover image", async ({ page }) => {
 
   await expect(page.getByLabel("分享封面图地址")).toHaveValue(/\/uploads\//);
 });
+
+test("admin can delete an article from the list", async ({ page }) => {
+  const title = `待删除文章 ${Date.now()}`;
+
+  await page.goto("/admin/login");
+  await page.getByLabel("访问密码").fill("secret");
+  await page.getByRole("button", { name: "进入后台" }).click();
+  await expect(page).toHaveURL("/admin");
+
+  await page.getByRole("link", { name: "新建文章" }).click();
+  await expect(page).toHaveURL("/admin/articles/new");
+
+  await page.getByLabel("标题").fill(title);
+  await page.locator("#summary").fill("用于删除测试");
+  await page.getByRole("button", { name: "保存草稿" }).click();
+  await expect(page).toHaveURL(/\/admin\/articles\/[^/]+\/edit$/);
+
+  await page.goto("/admin");
+  const articleCard = page.locator(".article-card").filter({ hasText: title });
+  await expect(articleCard).toBeVisible();
+
+  page.once("dialog", (dialog) => dialog.accept());
+  await articleCard.getByRole("button", { name: "删除文章" }).click();
+
+  await expect(articleCard).toHaveCount(0);
+});

@@ -1,0 +1,19 @@
+要备份的就两类：
+
+  - 数据库文件：E:\OutBaoBao\dev.db
+  - 图片目录：E:\OutBaoBao\public\uploads
+
+  含义是：
+
+  - dev.db 里存文章文字、标签、分享文案、图片路径、发布状态这些结构化数据
+  - public/uploads 里存你实际上传的图片文件
+  - 两者缺一个都不完整
+      - 只备份数据库，没有图片，文章里的图会失效
+      - 只备份图片，没有数据库，文章内容会丢
+
+  如果以后你部署到服务器，最少要一起备份这两处。
+
+  最简单的手工备份方式就是定期复制：
+
+  Copy-Item E:\OutBaoBao\dev.db D:\backup\outbaobao\ -Force
+  Copy-Item E:\OutBaoBao\public\uploads D:\backup\outbaobao\uploads -Recurse -Force

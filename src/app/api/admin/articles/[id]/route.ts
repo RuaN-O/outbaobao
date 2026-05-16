@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { updateAdminArticle } from "@/lib/admin-articles";
+import { deleteAdminArticle, updateAdminArticle } from "@/lib/admin-articles";
 import { normalizeArticleStatus } from "@/lib/articles";
 
 export async function PATCH(request: Request, context: { params: Promise<{ id: string }> }) {
@@ -56,4 +56,15 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
   }
 
   return NextResponse.json(article);
+}
+
+export async function DELETE(_request: Request, context: { params: Promise<{ id: string }> }) {
+  const { id } = await context.params;
+  const deleted = await deleteAdminArticle(id);
+
+  if (!deleted) {
+    return NextResponse.json({ message: "Article not found" }, { status: 404 });
+  }
+
+  return NextResponse.json({ success: true });
 }

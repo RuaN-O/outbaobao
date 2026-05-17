@@ -4,6 +4,9 @@ import type { ChangeEvent } from "react";
 import { useEffect, useRef, useState } from "react";
 
 type RichTextEditorProps = {
+  blockLabel: string;
+  editorLabel: string;
+  uploadInputId: string;
   value: string;
   images: string[];
   onChange: (value: string) => void;
@@ -31,7 +34,16 @@ function normalizeEditorHtml(value: string) {
   return trimmed || "<p></p>";
 }
 
-export function RichTextEditor({ value, images, onChange, onAddImage, onRemoveImage }: RichTextEditorProps) {
+export function RichTextEditor({
+  blockLabel,
+  editorLabel,
+  uploadInputId,
+  value,
+  images,
+  onChange,
+  onAddImage,
+  onRemoveImage,
+}: RichTextEditorProps) {
   const editorRef = useRef<HTMLDivElement | null>(null);
   const [uploadState, setUploadState] = useState<"idle" | "uploading" | "error">("idle");
 
@@ -117,8 +129,8 @@ export function RichTextEditor({ value, images, onChange, onAddImage, onRemoveIm
   return (
     <div className="article-detail">
       <div className="toolbar">
-        <span>正文</span>
-        <div className="editor-toolbar" role="toolbar" aria-label="正文快捷工具">
+        <span>{blockLabel}</span>
+        <div className="editor-toolbar" role="toolbar" aria-label={`${blockLabel}快捷工具`}>
           {TOOLBAR_ACTIONS.map((action) => (
             <button key={action.label} type="button" onClick={() => applyToolbarAction(action)}>
               {action.label}
@@ -130,19 +142,19 @@ export function RichTextEditor({ value, images, onChange, onAddImage, onRemoveIm
           className="rich-editor"
           contentEditable
           suppressContentEditableWarning
-          aria-label="正文内容"
+          aria-label={editorLabel}
           onInput={syncEditorValue}
         />
       </div>
 
       <div className="toolbar">
-        <span>正文图片</span>
-        <label htmlFor="inlineImageUpload">添加正文图片</label>
-        <input id="inlineImageUpload" name="inlineImageUpload" type="file" accept="image/*" onChange={handleFileChange} />
+        <span>{blockLabel}图片</span>
+        <label htmlFor={uploadInputId}>添加图片</label>
+        <input id={uploadInputId} name={uploadInputId} type="file" accept="image/*" onChange={handleFileChange} />
         {uploadState === "uploading" ? <p className="article-summary">正在上传图片...</p> : null}
         {uploadState === "error" ? <p className="article-summary">图片上传失败，请重试。</p> : null}
         {images.length === 0 ? (
-          <p className="article-summary">当前没有正文图片。</p>
+          <p className="article-summary">当前没有图片。</p>
         ) : (
           images.map((image) => (
             <div key={image} className="pagination">

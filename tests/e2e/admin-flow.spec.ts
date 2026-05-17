@@ -27,7 +27,7 @@ test("admin can update article content and remove an inline image", async ({ pag
 
   await page.goto("/admin/articles/example-id/edit");
   await page.getByLabel("标题").fill("修改后的标题");
-  await page.getByLabel("添加正文图片").setInputFiles({
+  await page.getByLabel("添加图片").setInputFiles({
     name: "inline-image.png",
     mimeType: "image/png",
     buffer: Buffer.from("fake-image-content"),
@@ -47,7 +47,7 @@ test("admin can upload an inline image", async ({ page }) => {
   await expect(page).toHaveURL("/admin");
 
   await page.goto("/admin/articles/example-id/edit");
-  await page.getByLabel("添加正文图片").setInputFiles({
+  await page.getByLabel("添加图片").setInputFiles({
     name: "inline-image.png",
     mimeType: "image/png",
     buffer: Buffer.from("fake-image-content"),
@@ -98,7 +98,7 @@ test("admin can delete an article from the list", async ({ page }) => {
 
   await page.getByLabel("标题").fill(title);
   await page.locator("#summary").fill("用于删除测试");
-  await page.getByRole("button", { name: "保存草稿" }).click();
+  await page.getByRole("button", { name: "立即发布" }).click();
   await expect(page).toHaveURL(/\/admin\/articles\/[^/]+\/edit$/);
 
   await page.goto("/admin");
@@ -126,4 +126,27 @@ test("admin article form hides advanced fields and uses immediate publish by def
   await expect(page.getByRole("button", { name: "保存草稿" })).toHaveCount(0);
   await expect(page.getByRole("button", { name: "定时发布" })).toHaveCount(0);
   await expect(page.getByRole("button", { name: "立即发布" })).toHaveCount(1);
+});
+
+test("admin can add a second content block and move it upward immediately", async ({ page }) => {
+  await page.goto("/admin/login");
+  await page.getByLabel("访问密码").fill("secret");
+  await page.getByRole("button", { name: "进入后台" }).click();
+  await expect(page).toHaveURL("/admin");
+
+  await page.goto("/admin/articles/new");
+  await expect(page.getByRole("button", { name: "新增正文块" })).toBeVisible();
+  await expect(page.locator("[contenteditable='true']")).toHaveCount(1);
+
+  await page.getByRole("button", { name: "新增正文块" }).click();
+  await expect(page.locator("[contenteditable='true']")).toHaveCount(2);
+
+  await page.locator("[contenteditable='true']").nth(0).click();
+  await page.keyboard.insertText("第一块");
+  await page.locator("[contenteditable='true']").nth(1).click();
+  await page.keyboard.insertText("第二块");
+
+  await page.locator(".content-block-card").nth(1).getByRole("button", { name: "上移" }).click();
+  await expect(page.locator("[contenteditable='true']").nth(0)).toContainText("第二块");
+  await expect(page.locator("[contenteditable='true']").nth(1)).toContainText("第一块");
 });

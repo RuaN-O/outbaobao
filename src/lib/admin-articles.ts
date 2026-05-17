@@ -1,4 +1,11 @@
 import type { ArticleStatus as PrismaArticleStatus, Prisma, PrismaClient } from "@prisma/client";
+import {
+  type ArticleContentBlock,
+  flattenArticleInlineImages,
+  mergeArticleContentHtml,
+  parseArticleContentBlocks,
+  serializeArticleContentBlocks,
+} from "@/lib/content-blocks";
 import { db } from "@/lib/db";
 
 export type ArticleStatus = "DRAFT" | "PUBLISHED" | "SCHEDULED";
@@ -8,7 +15,9 @@ export type AdminArticleRecord = {
   slug: string;
   title: string;
   summary: string;
+  summaryImagePath: string;
   tags: string[];
+  contentBlocks: ArticleContentBlock[];
   contentHtml: string;
   inlineImages: string[];
   shareTitle: string;
@@ -27,7 +36,9 @@ type CreateAdminArticleInput = Pick<
   AdminArticleRecord,
   | "title"
   | "summary"
+  | "summaryImagePath"
   | "tags"
+  | "contentBlocks"
   | "contentHtml"
   | "inlineImages"
   | "shareTitle"
@@ -45,7 +56,9 @@ type UpdateAdminArticleInput = Pick<
   AdminArticleRecord,
   | "title"
   | "summary"
+  | "summaryImagePath"
   | "tags"
+  | "contentBlocks"
   | "contentHtml"
   | "inlineImages"
   | "shareTitle"
@@ -62,7 +75,15 @@ const defaultArticles: AdminArticleRecord[] = [
     slug: "launch-notice",
     title: "通知",
     summary: "公告板首版已经可访问，后续会持续补充内容。",
+    summaryImagePath: "",
     tags: ["公告"],
+    contentBlocks: [
+      {
+        id: "notice-1-block-1",
+        html: "<p>公告板首版已经上线，后续将持续更新内容与功能。</p>",
+        inlineImages: [],
+      },
+    ],
     contentHtml: "<p>公告板首版已经上线，后续将持续更新内容与功能。</p>",
     inlineImages: [],
     shareTitle: "",
@@ -81,7 +102,15 @@ const defaultArticles: AdminArticleRecord[] = [
     slug: "example-article",
     title: "示例文章",
     summary: "这是一篇用于详情页、分享卡片和后台编辑验证的示例文章。",
+    summaryImagePath: "/uploads/example-summary.svg",
     tags: ["示例"],
+    contentBlocks: [
+      {
+        id: "example-id-block-1",
+        html: "<p>这是一篇用于详情页、分享卡片和后台编辑验证的示例文章。</p>",
+        inlineImages: ["/uploads/example-inline.png"],
+      },
+    ],
     contentHtml: "<p>这是一篇用于详情页、分享卡片和后台编辑验证的示例文章。</p>",
     inlineImages: ["/uploads/example-inline.png"],
     shareTitle: "示例文章分享标题",
@@ -100,7 +129,15 @@ const defaultArticles: AdminArticleRecord[] = [
     slug: "draft-article",
     title: "草稿文章",
     summary: "这篇文章不应该出现在公开站点。",
+    summaryImagePath: "",
     tags: ["草稿"],
+    contentBlocks: [
+      {
+        id: "draft-1-block-1",
+        html: "<p>这篇文章不应该出现在公开站点。</p>",
+        inlineImages: [],
+      },
+    ],
     contentHtml: "<p>这篇文章不应该出现在公开站点。</p>",
     inlineImages: [],
     shareTitle: "",
@@ -154,14 +191,19 @@ function slugifyTitle(title: string) {
 }
 
 function toAdminArticleRecord(article: PersistedArticle): AdminArticleRecord {
+  const inlineImages = parseInlineImages(article.inlineImagesJson);
+  const contentBlocks = parseArticleContentBlocks(article.contentBlocksJson, article.contentHtml, inlineImages);
+
   return {
     id: article.id,
     slug: article.slug,
     title: article.title,
     summary: article.summary,
+    summaryImagePath: article.summaryImagePath ?? "",
     tags: article.tags.map((item) => item.tag.name),
-    contentHtml: article.contentHtml,
-    inlineImages: parseInlineImages(article.inlineImagesJson),
+    contentBlocks,
+    contentHtml: mergeArticleContentHtml(contentBlocks),
+    inlineImages: flattenArticleInlineImages(contentBlocks),
     shareTitle: article.shareTitle ?? "",
     shareDescription: article.shareDescription ?? "",
     shareImagePath: article.shareImagePath ?? "",
@@ -195,11 +237,7 @@ async function ensureUniqueSlug(client: PrismaClient | Prisma.TransactionClient,
   return slug;
 }
 
-async function replaceArticleTags(
-  client: PrismaClient | Prisma.TransactionClient,
-  articleId: string,
-  tags: string[],
-) {
+async function replaceArticleTags(client: PrismaClient | Prisma.TransactionClient, articleId: string, tags: string[]) {
   await client.articleTag.deleteMany({ where: { articleId } });
 
   for (const rawTag of tags) {
@@ -239,7 +277,9 @@ async function seedDefaultArticlesIfNeeded() {
           slug: article.slug,
           title: article.title,
           summary: article.summary,
+          summaryImagePath: article.summaryImagePath || null,
           contentHtml: article.contentHtml,
+          contentBlocksJson: serializeArticleContentBlocks(article.contentBlocks),
           inlineImagesJson: JSON.stringify(article.inlineImages),
           coverImagePath: article.coverImagePath || null,
           shareTitle: article.shareTitle || null,
@@ -313,8 +353,10 @@ export async function createAdminArticle(input: CreateAdminArticleInput): Promis
         slug,
         title: input.title.trim(),
         summary: input.summary.trim(),
-        contentHtml: input.contentHtml.trim() || "<p></p>",
-        inlineImagesJson: JSON.stringify(input.inlineImages),
+        summaryImagePath: normalizeOptionalString(input.summaryImagePath) || null,
+        contentHtml: mergeArticleContentHtml(input.contentBlocks),
+        contentBlocksJson: serializeArticleContentBlocks(input.contentBlocks),
+        inlineImagesJson: JSON.stringify(flattenArticleInlineImages(input.contentBlocks)),
         coverImagePath: normalizeOptionalString(input.coverImagePath) || null,
         shareTitle: normalizeOptionalString(input.shareTitle) || null,
         shareDescription: normalizeOptionalString(input.shareDescription) || null,
@@ -365,8 +407,10 @@ export async function updateAdminArticle(id: string, updates: UpdateAdminArticle
       data: {
         title: updates.title.trim(),
         summary: updates.summary.trim(),
-        contentHtml: updates.contentHtml.trim() || "<p></p>",
-        inlineImagesJson: JSON.stringify(updates.inlineImages),
+        summaryImagePath: normalizeOptionalString(updates.summaryImagePath) || null,
+        contentHtml: mergeArticleContentHtml(updates.contentBlocks),
+        contentBlocksJson: serializeArticleContentBlocks(updates.contentBlocks),
+        inlineImagesJson: JSON.stringify(flattenArticleInlineImages(updates.contentBlocks)),
         shareTitle: normalizeOptionalString(updates.shareTitle) || null,
         shareDescription: normalizeOptionalString(updates.shareDescription) || null,
         shareImagePath: normalizeOptionalString(updates.shareImagePath) || null,

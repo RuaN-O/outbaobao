@@ -17,3 +17,29 @@
 
   Copy-Item E:\OutBaoBao\dev.db D:\backup\outbaobao\ -Force
   Copy-Item E:\OutBaoBao\public\uploads D:\backup\outbaobao\uploads -Recurse -Force
+
+线上更新
+ cd /home/ubuntu/var/www/outbaobao
+
+  git pull --ff-only origin master
+
+  set -a
+  source .env.production
+  set +a
+
+  pnpm install --frozen-lockfile
+  pnpm prisma db push
+  pnpm build
+
+  pm2 delete outbaobao || true
+  pm2 start "pnpm start --hostname 127.0.0.1 --port 3000" --name outbaobao
+  pm2 save
+
+  sudo nginx -t
+  sudo systemctl reload nginx
+
+  pm2 status
+  pm2 logs outbaobao --lines 50 --nostream
+
+  curl -I http://127.0.0.1:3000
+  curl -I https://jss309309.com

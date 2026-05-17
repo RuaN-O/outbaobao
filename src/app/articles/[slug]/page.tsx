@@ -71,6 +71,9 @@ export default async function ArticleDetailPage({ params }: ArticleDetailPagePro
           ))}
         </div>
         <p className="article-summary">{article.summary}</p>
+        {article.summaryImagePath ? (
+          <img className="article-summary-image" src={article.summaryImagePath} alt="摘要配图" />
+        ) : null}
         <div className="article-content" dangerouslySetInnerHTML={{ __html: article.contentHtml }} />
       </article>
     </main>

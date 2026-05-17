@@ -18,7 +18,9 @@ model Article {
   slug             String        @unique
   title            String
   summary          String
+  summaryImagePath String?
   contentHtml      String
+  contentBlocksJson String       @default("[]")
   inlineImagesJson String        @default("[]")
   coverImagePath   String?
   shareTitle       String?

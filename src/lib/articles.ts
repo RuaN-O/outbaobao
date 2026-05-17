@@ -15,6 +15,7 @@ export type PublicArticle = SortableArticle & {
   slug: string;
   title: string;
   summary: string;
+  summaryImagePath: string | null;
   contentHtml: string;
   coverImagePath: string | null;
   shareTitle?: string | null;
@@ -34,6 +35,7 @@ function toPublicArticle(record: Awaited<ReturnType<typeof listSharedArticles>>[
     slug: record.slug,
     title: record.title,
     summary: record.summary,
+    summaryImagePath: record.summaryImagePath || null,
     contentHtml: record.contentHtml,
     coverImagePath: record.coverImagePath || null,
     shareTitle: record.shareTitle || null,

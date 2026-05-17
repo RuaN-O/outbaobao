@@ -4,6 +4,7 @@ import type { ChangeEvent } from "react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { RichTextEditor } from "@/components/admin/rich-text-editor";
+import { createEmptyContentBlock, type ArticleContentBlock } from "@/lib/content-blocks";
 import type { AdminArticleRecord } from "@/lib/admin-articles";
 
 type ArticleFormProps = {
@@ -13,9 +14,8 @@ type ArticleFormProps = {
 
 type SaveState = "idle" | "success" | "error";
 
-function removeImageFromContent(contentHtml: string, image: string) {
-  const escapedImage = image.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  return contentHtml.replace(new RegExp(`<p><img src="${escapedImage}" alt="" \\/><\\/p>`, "g"), "");
+function createInitialBlocks(article?: AdminArticleRecord) {
+  return article?.contentBlocks.length ? article.contentBlocks : [createEmptyContentBlock()];
 }
 
 export function ArticleForm({ mode, article }: ArticleFormProps) {
@@ -23,27 +23,25 @@ export function ArticleForm({ mode, article }: ArticleFormProps) {
   const [isClientReady, setIsClientReady] = useState(false);
   const [title, setTitle] = useState(article?.title ?? "");
   const [summary, setSummary] = useState(article?.summary ?? "");
-  const [contentHtml, setContentHtml] = useState(article?.contentHtml ?? "<p></p>");
-  const [inlineImages, setInlineImages] = useState(article?.inlineImages ?? []);
+  const [summaryImagePath, setSummaryImagePath] = useState(article?.summaryImagePath ?? "");
+  const [contentBlocks, setContentBlocks] = useState<ArticleContentBlock[]>(() => createInitialBlocks(article));
   const [shareTitle] = useState(article?.shareTitle ?? "");
   const [shareDescription, setShareDescription] = useState(article?.shareDescription ?? "");
   const [shareImagePath, setShareImagePath] = useState(article?.shareImagePath ?? "");
   const [tags] = useState(article?.tags ?? []);
   const [saveState, setSaveState] = useState<SaveState>("idle");
+  const [summaryUploadState, setSummaryUploadState] = useState<"idle" | "uploading" | "error">("idle");
   const [shareUploadState, setShareUploadState] = useState<"idle" | "uploading" | "error">("idle");
 
   useEffect(() => {
     setIsClientReady(true);
   }, []);
 
-  async function handleShareImageUpload(event: ChangeEvent<HTMLInputElement>) {
-    const file = event.target.files?.[0];
-
-    if (!file) {
-      return;
-    }
-
-    setShareUploadState("uploading");
+  async function uploadImage(
+    file: File,
+    setUploadState: (state: "idle" | "uploading" | "error") => void,
+  ): Promise<string | null> {
+    setUploadState("uploading");
 
     const formData = new FormData();
     formData.set("file", file);
@@ -54,22 +52,90 @@ export function ArticleForm({ mode, article }: ArticleFormProps) {
     });
 
     if (!response.ok) {
-      setShareUploadState("error");
-      event.target.value = "";
-      return;
+      setUploadState("error");
+      return null;
     }
 
     const payload = (await response.json()) as { path?: string };
 
     if (typeof payload.path === "string" && payload.path) {
-      setShareImagePath(payload.path);
-      setShareUploadState("idle");
-      event.target.value = "";
+      setUploadState("idle");
+      return payload.path;
+    }
+
+    setUploadState("error");
+    return null;
+  }
+
+  async function handleSummaryImageUpload(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+
+    if (!file) {
       return;
     }
 
-    setShareUploadState("error");
+    const path = await uploadImage(file, setSummaryUploadState);
+
+    if (path) {
+      setSummaryImagePath(path);
+    }
+
     event.target.value = "";
+  }
+
+  async function handleShareImageUpload(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+
+    if (!file) {
+      return;
+    }
+
+    const path = await uploadImage(file, setShareUploadState);
+
+    if (path) {
+      setShareImagePath(path);
+    }
+
+    event.target.value = "";
+  }
+
+  function updateBlock(blockId: string, updater: (block: ArticleContentBlock) => ArticleContentBlock) {
+    setContentBlocks((current) => current.map((block) => (block.id === blockId ? updater(block) : block)));
+  }
+
+  function moveBlock(blockId: string, direction: -1 | 1) {
+    setContentBlocks((current) => {
+      const index = current.findIndex((block) => block.id === blockId);
+
+      if (index < 0) {
+        return current;
+      }
+
+      const nextIndex = index + direction;
+
+      if (nextIndex < 0 || nextIndex >= current.length) {
+        return current;
+      }
+
+      const nextBlocks = [...current];
+      const [moved] = nextBlocks.splice(index, 1);
+      nextBlocks.splice(nextIndex, 0, moved);
+      return nextBlocks;
+    });
+  }
+
+  function addBlock() {
+    setContentBlocks((current) => [...current, createEmptyContentBlock()]);
+  }
+
+  function removeBlock(blockId: string) {
+    setContentBlocks((current) => {
+      if (current.length === 1) {
+        return current;
+      }
+
+      return current.filter((block) => block.id !== blockId);
+    });
   }
 
   async function saveArticle() {
@@ -78,9 +144,9 @@ export function ArticleForm({ mode, article }: ArticleFormProps) {
     const body = JSON.stringify({
       title,
       summary,
+      summaryImagePath,
       tags,
-      contentHtml,
-      inlineImages,
+      contentBlocks,
       shareTitle,
       shareDescription,
       shareImagePath,
@@ -158,6 +224,34 @@ export function ArticleForm({ mode, article }: ArticleFormProps) {
       </div>
 
       <div className="toolbar">
+        <label htmlFor="summaryImagePath">摘要配图</label>
+        <label htmlFor="summaryImageUpload">上传摘要配图</label>
+        <input
+          id="summaryImageUpload"
+          name="summaryImageUpload"
+          type="file"
+          accept="image/*"
+          onChange={handleSummaryImageUpload}
+        />
+        <input
+          id="summaryImagePath"
+          name="summaryImagePath"
+          value={summaryImagePath}
+          onChange={(event) => setSummaryImagePath(event.target.value)}
+        />
+        {summaryUploadState === "uploading" ? <p className="article-summary">正在上传摘要配图...</p> : null}
+        {summaryUploadState === "error" ? <p className="article-summary">摘要配图上传失败，请重试。</p> : null}
+        {summaryImagePath ? (
+          <div className="toolbar">
+            <img className="share-cover-preview" src={summaryImagePath} alt="摘要配图预览" />
+            <button type="button" onClick={() => setSummaryImagePath("")}>
+              删除摘要配图
+            </button>
+          </div>
+        ) : null}
+      </div>
+
+      <div className="toolbar">
         <label htmlFor="shareDescription">分享摘要</label>
         <textarea
           id="shareDescription"
@@ -190,18 +284,57 @@ export function ArticleForm({ mode, article }: ArticleFormProps) {
         {shareImagePath ? <img className="share-cover-preview" src={shareImagePath} alt="分享封面图预览" /> : null}
       </div>
 
-      <RichTextEditor
-        value={contentHtml}
-        images={inlineImages}
-        onChange={setContentHtml}
-        onAddImage={(image) => {
-          setInlineImages((current) => [...current, image]);
-        }}
-        onRemoveImage={(image) => {
-          setInlineImages((current) => current.filter((item) => item !== image));
-          setContentHtml((current) => removeImageFromContent(current, image));
-        }}
-      />
+      <div className="toolbar">
+        <div className="content-block-header">
+          <span>正文分段</span>
+          <button type="button" onClick={addBlock}>
+            新增正文块
+          </button>
+        </div>
+        {contentBlocks.map((block, index) => (
+          <section key={block.id} className="content-block-card">
+            <div className="content-block-actions">
+              <span>{`正文块 ${index + 1}`}</span>
+              <div className="pagination">
+                <button type="button" onClick={() => moveBlock(block.id, -1)} disabled={index === 0}>
+                  上移
+                </button>
+                <button
+                  type="button"
+                  onClick={() => moveBlock(block.id, 1)}
+                  disabled={index === contentBlocks.length - 1}
+                >
+                  下移
+                </button>
+                <button type="button" onClick={() => removeBlock(block.id)} disabled={contentBlocks.length === 1}>
+                  删除正文块
+                </button>
+              </div>
+            </div>
+            <RichTextEditor
+              blockLabel={`正文块 ${index + 1}`}
+              editorLabel={`正文块 ${index + 1} 内容`}
+              uploadInputId={`inlineImageUpload-${block.id}`}
+              value={block.html}
+              images={block.inlineImages}
+              onChange={(html) => updateBlock(block.id, (current) => ({ ...current, html }))}
+              onAddImage={(image) =>
+                updateBlock(block.id, (current) => ({
+                  ...current,
+                  inlineImages: [...current.inlineImages, image],
+                }))
+              }
+              onRemoveImage={(image) =>
+                updateBlock(block.id, (current) => ({
+                  ...current,
+                  html: current.html.replace(new RegExp(`<p><img src="${image.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}" alt="" \\/><\\/p>`, "g"), ""),
+                  inlineImages: current.inlineImages.filter((item) => item !== image),
+                }))
+              }
+            />
+          </section>
+        ))}
+      </div>
 
       <div className="pagination">
         <button type="button" onClick={() => void saveArticle()}>

@@ -44,6 +44,28 @@ a {
   margin-bottom: 24px;
 }
 
+.content-block-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.content-block-card {
+  padding: 16px;
+  border: 1px solid #d9dee5;
+  border-radius: 16px;
+  background: #f9fafb;
+}
+
+.content-block-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
 .search-form input {
   width: 100%;
   padding: 12px 14px;
@@ -198,6 +220,14 @@ button {
   margin: 16px 0;
 }
 
+.article-summary-image {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  border-radius: 16px;
+  margin: 16px 0 20px;
+}
+
 .editor-toolbar {
   display: flex;
   flex-wrap: wrap;
@@ -320,6 +350,12 @@ button {
 
   .article-detail {
     padding: 20px;
+  }
+
+  .content-block-header,
+  .content-block-actions {
+    align-items: stretch;
+    flex-direction: column;
   }
 
   .share-modal-card {

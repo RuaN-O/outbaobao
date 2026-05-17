@@ -20,6 +20,24 @@ test("public article page exposes title and summary metadata", async ({ page }) 
   await expect(page).toHaveTitle(new RegExp(headingText.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
 });
 
+test("public article detail pages show the summary image, but the homepage list does not", async ({ page }) => {
+  await page.goto("/admin/login");
+  await page.getByLabel("访问密码").fill("secret");
+  await page.getByRole("button", { name: "进入后台" }).click();
+  await expect(page).toHaveURL("/admin");
+
+  await page.goto("/admin/articles/example-id/edit");
+  await page.getByRole("textbox", { name: "摘要配图" }).fill("/uploads/example-summary.svg");
+  await page.getByRole("button", { name: "立即发布" }).click();
+  await expect(page.getByText("保存成功")).toBeVisible();
+
+  await page.goto("/");
+  await expect(page.getByAltText("摘要配图")).toHaveCount(0);
+
+  await page.goto("/articles/example-article");
+  await expect(page.getByAltText("摘要配图")).toBeVisible();
+});
+
 test("anonymous visitors do not see the share button on public article pages", async ({ page }) => {
   await page.goto("/articles/example-article");
   await expect(page.getByRole("button", { name: "分享" })).toHaveCount(0);

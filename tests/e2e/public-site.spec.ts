@@ -38,6 +38,30 @@ test("public article detail pages show the summary image, but the homepage list 
   await expect(page.getByAltText("摘要配图")).toBeVisible();
 });
 
+test("public article titles stay inside the article card when the title is very long", async ({ page }) => {
+  const longTitle = "LONGTITLE".repeat(24);
+
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/admin/login");
+  await page.getByLabel("访问密码").fill("secret");
+  await page.getByRole("button", { name: "进入后台" }).click();
+  await expect(page).toHaveURL("/admin");
+
+  await page.goto("/admin/articles/example-id/edit");
+  await page.getByLabel("标题").fill(longTitle);
+  await page.getByRole("button", { name: "立即发布" }).click();
+  await expect(page.getByText("保存成功")).toBeVisible();
+
+  await page.goto("/articles/example-article");
+
+  const articleBox = await page.locator(".article-detail").boundingBox();
+  const titleBox = await page.getByRole("heading", { level: 1 }).boundingBox();
+
+  expect(articleBox).not.toBeNull();
+  expect(titleBox).not.toBeNull();
+  expect((titleBox?.x ?? 0) + (titleBox?.width ?? 0)).toBeLessThanOrEqual((articleBox?.x ?? 0) + (articleBox?.width ?? 0) + 1);
+});
+
 test("anonymous visitors do not see the share button on public article pages", async ({ page }) => {
   await page.goto("/articles/example-article");
   await expect(page.getByRole("button", { name: "分享" })).toHaveCount(0);

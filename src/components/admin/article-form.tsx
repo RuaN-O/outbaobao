@@ -4,8 +4,9 @@ import type { ChangeEvent } from "react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { RichTextEditor } from "@/components/admin/rich-text-editor";
-import { createEmptyContentBlock, type ArticleContentBlock } from "@/lib/content-blocks";
 import type { AdminArticleRecord } from "@/lib/admin-articles";
+import { createEmptyContentBlock, type ArticleContentBlock } from "@/lib/content-blocks";
+import { getCenteredSquareCrop, SHARE_CARD_IMAGE_SIZE } from "@/lib/share-card-image";
 
 type ArticleFormProps = {
   mode: "create" | "edit";
@@ -16,6 +17,81 @@ type SaveState = "idle" | "success" | "error";
 
 function createInitialBlocks(article?: AdminArticleRecord) {
   return article?.contentBlocks.length ? article.contentBlocks : [createEmptyContentBlock()];
+}
+
+function replaceFileExtension(fileName: string, nextExtension: string) {
+  if (/\.[^/.]+$/.test(fileName)) {
+    return fileName.replace(/\.[^/.]+$/, nextExtension);
+  }
+
+  return `${fileName}${nextExtension}`;
+}
+
+async function loadImageElement(file: File) {
+  const objectUrl = URL.createObjectURL(file);
+
+  try {
+    return await new Promise<HTMLImageElement>((resolve, reject) => {
+      const image = new Image();
+      image.onload = () => resolve(image);
+      image.onerror = () => reject(new Error("Failed to load image"));
+      image.src = objectUrl;
+    });
+  } finally {
+    URL.revokeObjectURL(objectUrl);
+  }
+}
+
+async function createShareCardUpload(file: File) {
+  if (!file.type.startsWith("image/")) {
+    throw new Error("Unsupported file type");
+  }
+
+  const image = await loadImageElement(file);
+  const crop = getCenteredSquareCrop(image.naturalWidth || image.width, image.naturalHeight || image.height);
+  const canvas = document.createElement("canvas");
+  canvas.width = SHARE_CARD_IMAGE_SIZE;
+  canvas.height = SHARE_CARD_IMAGE_SIZE;
+
+  const context = canvas.getContext("2d");
+
+  if (!context) {
+    throw new Error("Canvas is not available");
+  }
+
+  context.fillStyle = "#ffffff";
+  context.fillRect(0, 0, SHARE_CARD_IMAGE_SIZE, SHARE_CARD_IMAGE_SIZE);
+  context.drawImage(
+    image,
+    crop.x,
+    crop.y,
+    crop.size,
+    crop.size,
+    0,
+    0,
+    SHARE_CARD_IMAGE_SIZE,
+    SHARE_CARD_IMAGE_SIZE,
+  );
+
+  const blob = await new Promise<Blob>((resolve, reject) => {
+    canvas.toBlob(
+      (nextBlob) => {
+        if (nextBlob) {
+          resolve(nextBlob);
+          return;
+        }
+
+        reject(new Error("Failed to export image"));
+      },
+      "image/jpeg",
+      0.86,
+    );
+  });
+
+  return new File([blob], replaceFileExtension(file.name, ".jpg"), {
+    type: "image/jpeg",
+    lastModified: Date.now(),
+  });
 }
 
 export function ArticleForm({ mode, article }: ArticleFormProps) {
@@ -40,11 +116,21 @@ export function ArticleForm({ mode, article }: ArticleFormProps) {
   async function uploadImage(
     file: File,
     setUploadState: (state: "idle" | "uploading" | "error") => void,
+    preprocess?: (file: File) => Promise<File>,
   ): Promise<string | null> {
     setUploadState("uploading");
 
+    let uploadFile = file;
+
+    try {
+      uploadFile = preprocess ? await preprocess(file) : file;
+    } catch {
+      setUploadState("error");
+      return null;
+    }
+
     const formData = new FormData();
-    formData.set("file", file);
+    formData.set("file", uploadFile);
 
     const response = await fetch("/api/admin/uploads", {
       method: "POST",
@@ -90,7 +176,7 @@ export function ArticleForm({ mode, article }: ArticleFormProps) {
       return;
     }
 
-    const path = await uploadImage(file, setShareUploadState);
+    const path = await uploadImage(file, setShareUploadState, createShareCardUpload);
 
     if (path) {
       setShareImagePath(path);
@@ -279,6 +365,7 @@ export function ArticleForm({ mode, article }: ArticleFormProps) {
           value={shareImagePath}
           onChange={(event) => setShareImagePath(event.target.value)}
         />
+        <p className="article-summary">上传时会自动裁剪并压缩为 215x215，用于微信分享卡片。</p>
         {shareUploadState === "uploading" ? <p className="article-summary">正在上传分享封面图...</p> : null}
         {shareUploadState === "error" ? <p className="article-summary">分享封面图上传失败，请重试。</p> : null}
         {shareImagePath ? <img className="share-cover-preview" src={shareImagePath} alt="分享封面图预览" /> : null}
@@ -327,7 +414,10 @@ export function ArticleForm({ mode, article }: ArticleFormProps) {
               onRemoveImage={(image) =>
                 updateBlock(block.id, (current) => ({
                   ...current,
-                  html: current.html.replace(new RegExp(`<p><img src="${image.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}" alt="" \\/><\\/p>`, "g"), ""),
+                  html: current.html.replace(
+                    new RegExp(`<p><img src="${image.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}" alt="" \\/><\\/p>`, "g"),
+                    "",
+                  ),
                   inlineImages: current.inlineImages.filter((item) => item !== image),
                 }))
               }

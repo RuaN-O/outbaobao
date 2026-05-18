@@ -77,9 +77,14 @@ test("admin can upload a share cover image", async ({ page }) => {
 
   await page.goto("/admin/articles/example-id/edit");
   await page.getByLabel("上传分享封面图").setInputFiles({
-    name: "share-cover.png",
-    mimeType: "image/png",
-    buffer: Buffer.from("fake-cover-image"),
+    name: "share-cover.svg",
+    mimeType: "image/svg+xml",
+    buffer: Buffer.from(
+      `<svg xmlns="http://www.w3.org/2000/svg" width="640" height="360" viewBox="0 0 640 360">
+        <rect width="640" height="360" fill="#f97316" />
+        <circle cx="470" cy="180" r="110" fill="#111827" />
+      </svg>`,
+    ),
   });
 
   await expect(page.getByLabel("分享封面图地址")).toHaveValue(/\/uploads\//);

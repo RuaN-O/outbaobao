@@ -38,6 +38,21 @@ test("public article detail pages show the summary image, but the homepage list 
   await expect(page.getByAltText("摘要配图")).toBeVisible();
 });
 
+test("public article detail pages do not render an empty summary block", async ({ page }) => {
+  await page.goto("/admin/login");
+  await page.getByLabel("璁块棶瀵嗙爜").fill("secret");
+  await page.getByRole("button", { name: "杩涘叆鍚庡彴" }).click();
+  await expect(page).toHaveURL("/admin");
+
+  await page.goto("/admin/articles/example-id/edit");
+  await page.locator("#summary").fill("");
+  await page.getByRole("button", { name: "绔嬪嵆鍙戝竷" }).click();
+  await expect(page.getByText("淇濆瓨鎴愬姛")).toBeVisible();
+
+  await page.goto("/articles/example-article");
+  await expect(page.locator("p.article-summary")).toHaveCount(0);
+});
+
 test("public article titles stay inside the article card when the title is very long", async ({ page }) => {
   const longTitle = "LONGTITLE".repeat(24);
 

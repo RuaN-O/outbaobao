@@ -59,6 +59,7 @@ export default async function ArticleDetailPage({ params }: ArticleDetailPagePro
   }
 
   const isAdmin = await isCurrentViewerAdmin();
+  const hasSummary = article.summary.trim().length > 0;
 
   return (
     <main className="page-shell">
@@ -70,7 +71,7 @@ export default async function ArticleDetailPage({ params }: ArticleDetailPagePro
             <span key={tag}>{tag}</span>
           ))}
         </div>
-        <p className="article-summary">{article.summary}</p>
+        {hasSummary ? <p className="article-summary">{article.summary}</p> : null}
         {article.summaryImagePath ? (
           <img className="article-summary-image" src={article.summaryImagePath} alt="摘要配图" />
         ) : null}

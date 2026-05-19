@@ -291,7 +291,7 @@ export function ArticleForm({ mode, article }: ArticleFormProps) {
           id="title"
           className="article-title-input"
           name="title"
-          rows={3}
+          rows={1}
           value={title}
           onChange={(event) => setTitle(event.target.value)}
         />

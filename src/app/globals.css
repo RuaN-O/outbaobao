@@ -152,7 +152,7 @@ button {
   display: flex;
   flex-wrap: wrap;
   gap: 10px;
-  margin-bottom: 12px;
+  margin-bottom: 8px;
   color: #5b6470;
   font-size: 14px;
 }
@@ -186,7 +186,7 @@ button {
 }
 
 .article-detail h1 {
-  margin: 0 0 12px;
+  margin: 0 0 6px;
   font-size: 22px;
   overflow-wrap: anywhere;
   word-break: break-word;
@@ -194,7 +194,7 @@ button {
 
 .article-share-row {
   display: flex;
-  margin: 0 0 16px;
+  margin: 0 0 10px;
 }
 
 .article-share-button {

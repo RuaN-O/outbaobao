@@ -53,6 +53,29 @@ test("public article detail pages do not render an empty summary block", async (
   await expect(page.locator("p.article-summary")).toHaveCount(0);
 });
 
+test("public article detail pages do not render an empty tag block", async ({ page, request }) => {
+  const createResponse = await request.post("http://127.0.0.1:3200/api/admin/articles", {
+    data: {
+      title: `No Tags ${Date.now()}`,
+      summary: "Article without tags",
+      summaryImagePath: "",
+      tags: [],
+      contentBlocks: [{ id: "block-1", html: "<p>Body</p>", inlineImages: [] }],
+      shareTitle: "",
+      shareDescription: "",
+      shareImagePath: "",
+      publishAction: "publish",
+      scheduledFor: "",
+    },
+  });
+
+  expect(createResponse.ok()).toBeTruthy();
+  const article = (await createResponse.json()) as { slug: string };
+
+  await page.goto(`/articles/${article.slug}`);
+  await expect(page.locator(".article-meta")).toHaveCount(0);
+});
+
 test("public article titles stay inside the article card when the title is very long", async ({ page }) => {
   const longTitle = "LONGTITLE".repeat(24);
 

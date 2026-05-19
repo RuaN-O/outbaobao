@@ -59,6 +59,7 @@ export default async function ArticleDetailPage({ params }: ArticleDetailPagePro
   }
 
   const isAdmin = await isCurrentViewerAdmin();
+  const hasTags = article.tags.length > 0;
   const hasSummary = article.summary.trim().length > 0;
 
   return (
@@ -66,11 +67,13 @@ export default async function ArticleDetailPage({ params }: ArticleDetailPagePro
       <article className="article-detail">
         <h1>{article.title}</h1>
         {isAdmin ? <ArticleShareButton /> : null}
-        <div className="article-meta">
-          {article.tags.map((tag) => (
-            <span key={tag}>{tag}</span>
-          ))}
-        </div>
+        {hasTags ? (
+          <div className="article-meta">
+            {article.tags.map((tag) => (
+              <span key={tag}>{tag}</span>
+            ))}
+          </div>
+        ) : null}
         {hasSummary ? <p className="article-summary">{article.summary}</p> : null}
         {article.summaryImagePath ? (
           <img className="article-summary-image" src={article.summaryImagePath} alt="摘要配图" />
